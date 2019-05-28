@@ -174,6 +174,11 @@ df_validCommitsSubsample<- data.frame(df_validCommits$commitDate[df_validCommits
 符合上述條件的日期時間，每個日期只需計算一次——即同一天有多個commit落在上述時間區間條件的只計算一次。在不重覆計算下，請問有多少筆合格的commits，將此integer class值存在答案物件validCounts。(hint: `length()`可從vector角度計算物件有幾個元素，`nrow()`只針對方形資料計算它的列數)
 
 ```{r ans113}
+df_validCommits$commitDate[df_validCommits$validCommit]
+date(df_validCommits$commitDate[df_validCommits$validCommit])
+unique(date(df_validCommits$commitDate[df_validCommits$validCommit]))
+validCounts<-length(unique(date(df_validCommits$commitDate[df_validCommits$validCommit])))
+validCounts
 # validCounts
 ```
 
@@ -218,9 +223,25 @@ valid_commit_count <- function(username,reponame,wday,startHour,endHour){
 ```
 最後一行請打valid_commit_count。
 ```{r ans114}
+valid_commit_count <- function(username,reponame,wday,startHour,endHour){z<-str_c("https://api.github.com/repos/",username,"/",reponame,"/","commits")
+commitHistory<-content(GET(z))
+commit_df_fun<-function(commitHistory){df_commit<-data.frame(author=commitHistory[[1]]$commit$author$name,commiter=commitHistory[[1]]$commit$committer$name,commitDate=commitHistory[[1]]$commit$committer$date,sha=commitHistory[[1]]$sha,stringsAsFactors=F)
+return(df_commit)}
+df_allCommits<-map_dfr(commitHistory,commit_df_fun)
+df_allCommits$samePerson<-(df_allCommits$author==df_allCommits$commiter)
+df_validCommits<-df_allCommits[df_allCommits$author==df_allCommits$commiter]
+df_validCommits$commitDate<-ymd_hms(df_validCommits$commitDate,tz="UTC")
+df_validCommits$commitDate<-with_tz(df_validCommits$commitDate,tzone = "Asia/Taipei")
+hour(df_validCommits$commitDate)->df_validCommits$hh
+df_validCommits$date<-date(df_validCommits$commitDate)
+df_validCommits$weekday<-wday(df_validCommits$commitDate)
+df_validCommits$validCommit<- df_validCommits$weekday== wday & startHour<=df_validCommits$hh & endHour>=df_validCommits$hh
+df_validCommitsSubsample<- data.frame(df_validCommits$commitDate[df_validCommits$validCommit])
+validCounts<-length(unique(date(df_validCommits$commitDate[df_validCommits$validCommit])))
+return(validCounts)}
+valid_commit_count
 # valid_commit_count
 ```
-
 
 > 答完後上傳前，請確認每個code chunk的最後一行皆為該題的答案物件（除非題目有另外規定），且frontmatter的studentID及studentName皆有填寫。
 
